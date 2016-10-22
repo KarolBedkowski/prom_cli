@@ -1,0 +1,46 @@
+++++++++++++++
+ prom_cli
+++++++++++++++
+
+:Credits: Copyright (c) Karol Będkowski, 2016
+:Licence: GPLv3+
+:Status: beta
+:Tags: prometheus
+
+
+Extremal simple CLI tool for quering Prometheus server; return CSV
+result.
+
+Building
+========
+Requirements:
+ * GoLang
+ * Libraries (go get):
+
+   * github.com/prometheus/client_golang/
+	* github.com/prometheus/common/model
+	* golang.org/x/net/context
+   
+
+Building:
+ * go get .
+ * go build main.go
+
+
+Running
+=======
+
+./prom_cli -query 
+
+Options
+-------
+
+ `-query`    Prometheus query (default: up)
+ `-url`      Prometheus url (default: http://localhost:9090/)
+ `-start`    start for query-range
+ `-end`      end for query-range (default: now)
+ `-step`     step for query-range (default: 5m)
+ `-delim`    CSV fields delimiter (defailt: ;)
+ `-h`        show help
+
+.. vim: ft=rst tw=72
