@@ -12,6 +12,7 @@ import (
 	"github.com/prometheus/client_golang/api/prometheus"
 	"github.com/prometheus/common/model"
 	"golang.org/x/net/context"
+	"os"
 	"sort"
 	"time"
 )
@@ -117,7 +118,7 @@ func main() {
 	clientConf := prometheus.Config{Address: *promUrl}
 	client, err := prometheus.New(clientConf)
 	if err != nil {
-		fmt.Printf("error: %s\n", err.Error())
+		fmt.Fprintf(os.Stderr, "error: %s\n", err.Error())
 		return
 	}
 	api := prometheus.NewQueryAPI(client)
@@ -143,7 +144,7 @@ func main() {
 		value, err = api.Query(context.Background(), *promQuery, time.Now())
 	}
 	if err != nil {
-		fmt.Printf("error: %s\n", err.Error())
+		fmt.Fprintf(os.Stderr, "error: %s\n", err.Error())
 		return
 	}
 
@@ -161,7 +162,7 @@ func main() {
 		data := processScalar(*scalar)
 		fmt.Println(formatCSV(data, rune((*csvDelim)[0])))
 	default:
-		fmt.Printf("error: unknown/unimplemented type: %v\n", value.Type())
+		fmt.Fprintf(os.Stderr, "error: unknown/unimplemented type: %v\n", value.Type())
 		fmt.Printf("Result:\n%+v\n", value)
 	}
 }
