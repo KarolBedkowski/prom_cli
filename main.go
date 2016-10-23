@@ -41,8 +41,8 @@ func (a TimeByTime) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a TimeByTime) Less(i, j int) bool { return a[i] < a[j] }
 
 func processMatrix(matrix model.Matrix) [][]string {
-	rows := make(map[model.Time][]string, 0)
-	header := make([]string, 0)
+	rows := make(map[model.Time][]string)
+	header := make([]string, 0, len(matrix))
 	header = append(header, "timestamp")
 	for i, stream := range matrix {
 		header = append(header, stream.Metric.String())
@@ -65,10 +65,8 @@ func processMatrix(matrix model.Matrix) [][]string {
 	data := make([][]string, 0, len(rows)+1)
 	data = append(data, header)
 	for _, ts := range timestamps {
-		var row []string
-		row = append(row, ts.String())
-		cols := rows[ts]
-		row = append(row, cols...)
+		row := []string{ts.String()}
+		row = append(row, rows[ts]...)
 		data = append(data, row)
 	}
 	return data
@@ -98,7 +96,7 @@ func processScalar(scalar model.Scalar) [][]string {
 }
 
 func main() {
-	promUrl := flag.String("url", "http://localhost:9090/", "prometheus url")
+	promURL := flag.String("url", "http://localhost:9090/", "prometheus url")
 	promQuery := flag.String("query", "up", "prometheus query")
 	promQueryRangeStart := flag.Int64("start", 0, "query range - start")
 	promQueryRangeEnd := flag.Int64("end", 0, "query range - end")
@@ -110,17 +108,18 @@ func main() {
 		fmt.Println("error: missing query")
 		return
 	}
-	if *promUrl == "" {
+	if *promURL == "" {
 		fmt.Println("error: missing prometheus url")
 		return
 	}
 
-	clientConf := prometheus.Config{Address: *promUrl}
+	clientConf := prometheus.Config{Address: *promURL}
 	client, err := prometheus.New(clientConf)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: %s\n", err.Error())
 		return
 	}
+
 	api := prometheus.NewQueryAPI(client)
 	var value model.Value
 	if *promQueryRangeStart > 0 {
