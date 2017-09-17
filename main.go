@@ -9,7 +9,8 @@ import (
 	"encoding/csv"
 	"flag"
 	"fmt"
-	"github.com/prometheus/client_golang/api/prometheus"
+	prometheus "github.com/prometheus/client_golang/api"
+	apiv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
 	"golang.org/x/net/context"
 	"os"
@@ -114,13 +115,13 @@ func main() {
 	}
 
 	clientConf := prometheus.Config{Address: *promURL}
-	client, err := prometheus.New(clientConf)
+	client, err := prometheus.NewClient(clientConf)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: %s\n", err.Error())
 		return
 	}
 
-	api := prometheus.NewQueryAPI(client)
+	api := apiv1.NewAPI(client)
 	var value model.Value
 	if *promQueryRangeStart > 0 {
 		var end time.Time
@@ -133,7 +134,7 @@ func main() {
 		if step <= 0 {
 			step = time.Duration(5) * time.Minute
 		}
-		r := prometheus.Range{
+		r := apiv1.Range{
 			Start: time.Unix(*promQueryRangeStart, 0),
 			End:   end,
 			Step:  step,
