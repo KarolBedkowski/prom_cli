@@ -35,13 +35,19 @@ func formatCSV(rows [][]string, delim rune) string {
 	return b.String()
 }
 
+type dateFormatter func(ts model.Time) string
+
+func simpleDateFormatter(ts model.Time) string {
+	return ts.String()
+}
+
 type TimeByTime []model.Time
 
 func (a TimeByTime) Len() int           { return len(a) }
 func (a TimeByTime) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a TimeByTime) Less(i, j int) bool { return a[i] < a[j] }
 
-func processMatrix(matrix model.Matrix) [][]string {
+func processMatrix(matrix model.Matrix, df dateFormatter) [][]string {
 	rows := make(map[model.Time][]string)
 	header := make([]string, 0, len(matrix))
 	header = append(header, "timestamp")
@@ -66,30 +72,30 @@ func processMatrix(matrix model.Matrix) [][]string {
 	data := make([][]string, 0, len(rows)+1)
 	data = append(data, header)
 	for _, ts := range timestamps {
-		row := []string{ts.String()}
+		row := []string{df(ts)}
 		row = append(row, rows[ts]...)
 		data = append(data, row)
 	}
 	return data
 }
 
-func processVector(vector model.Vector) [][]string {
+func processVector(vector model.Vector, df dateFormatter) [][]string {
 	rows := make([][]string, 0, len(vector)+1)
 	rows = append(rows, []string{"timestamp", "metric", "value"})
 	for _, sample := range vector {
 		rows = append(rows, []string{
-			sample.Timestamp.String(),
+			df(sample.Timestamp),
 			sample.Metric.String(),
 			sample.Value.String()})
 	}
 	return rows
 }
 
-func processScalar(scalar model.Scalar) [][]string {
+func processScalar(scalar model.Scalar, df dateFormatter) [][]string {
 	rows := [][]string{
 		[]string{"timestamp", "value"},
 		[]string{
-			scalar.Timestamp.String(),
+			df(scalar.Timestamp),
 			scalar.Value.String(),
 		},
 	}
@@ -103,6 +109,8 @@ func main() {
 	promQueryRangeEnd := flag.Int64("end", 0, "query range - end")
 	promQueryRangeStep := flag.Duration("step", 0, "query range - step")
 	csvDelim := flag.String("delim", ";", "CSV field delimiter")
+	csvDateFormat := flag.String("dateFormat", "2006-01-02 15:04:05",
+		"Output date format; if empty or '-' = unix timestamp")
 	flag.Parse()
 
 	if *promQuery == "" {
@@ -148,18 +156,27 @@ func main() {
 		return
 	}
 
+	var df dateFormatter
+	if len(*csvDateFormat) > 0 && *csvDateFormat != "-" {
+		df = func(ts model.Time) string {
+			return time.Unix(0, int64(ts)*1000000).Format(*csvDateFormat)
+		}
+	} else {
+		df = simpleDateFormatter
+	}
+
 	switch value.Type() {
 	case model.ValMatrix:
 		matrix := value.(model.Matrix)
-		data := processMatrix(matrix)
+		data := processMatrix(matrix, df)
 		fmt.Println(formatCSV(data, rune((*csvDelim)[0])))
 	case model.ValVector:
 		vector := value.(model.Vector)
-		data := processVector(vector)
+		data := processVector(vector, df)
 		fmt.Println(formatCSV(data, rune((*csvDelim)[0])))
 	case model.ValScalar:
 		scalar := value.(*model.Scalar)
-		data := processScalar(*scalar)
+		data := processScalar(*scalar, df)
 		fmt.Println(formatCSV(data, rune((*csvDelim)[0])))
 	default:
 		fmt.Fprintf(os.Stderr, "error: unknown/unimplemented type: %v\n", value.Type())
